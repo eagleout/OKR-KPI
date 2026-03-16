@@ -397,10 +397,10 @@ input[type=range] {
       <button class="btn btn-outline" style="font-size:0.85rem;padding:0.7rem 1.5rem;" onclick="exportJSON()">
         💾 Sauvegarder (.json)
       </button>
-      <button class="btn btn-outline" style="font-size:0.85rem;padding:0.7rem 1.5rem;" onclick="document.getElementById('json-import-input').click()">
+      <button class="btn btn-outline" style="font-size:0.85rem;padding:0.7rem 1.5rem;" id="btn-import-json">
         📂 Charger (.json)
       </button>
-      <input type="file" id="json-import-input" accept=".json" onchange="importJSON(event)" style="display:none;position:absolute">
+      <input type="file" id="json-import-input" accept=".json" style="position:fixed;top:-200px;left:-200px;width:1px;height:1px;opacity:0;pointer-events:none;">
     </div>
   </div>
 
@@ -1180,6 +1180,16 @@ function importJSON(event) {
 // ─── INIT ────────────────────────────────────────────────────────────────────
 loadFromStorage();
 renderDashboard();
+
+// Bouton charger JSON — liaison après rendu DOM
+(function() {
+  const btn = document.getElementById('btn-import-json');
+  const inp = document.getElementById('json-import-input');
+  if (btn && inp) {
+    btn.addEventListener('click', function() { inp.click(); });
+    inp.addEventListener('change', importJSON);
+  }
+})();
 </script>
 </body>
 </html>
