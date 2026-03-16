@@ -394,6 +394,13 @@ input[type=range] {
       <button class="btn btn-gold" style="font-size:0.85rem;padding:0.7rem 1.5rem;" onclick="exportExcel()">
         ⬇ Télécharger Excel (.xlsx)
       </button>
+      <button class="btn btn-outline" style="font-size:0.85rem;padding:0.7rem 1.5rem;" onclick="exportJSON()">
+        💾 Sauvegarder (.json)
+      </button>
+      <label class="btn btn-outline" style="font-size:0.85rem;padding:0.7rem 1.5rem;cursor:pointer;">
+        📂 Charger (.json)
+        <input type="file" accept=".json" onchange="importJSON(event)" style="display:none">
+      </label>
     </div>
   </div>
 
@@ -857,6 +864,7 @@ function saveOKR() {
   } else {
     state.okrs.push({id:Date.now(), title, pillar, owner, keyResults:krs});
   }
+  saveToStorage();
   closeModal('okr-modal');
   renderOKRs();
   renderDashboard();
@@ -865,12 +873,14 @@ function saveOKR() {
 
 function deleteOKR(id) {
   state.okrs = state.okrs.filter(o=>o.id!==id);
+  saveToStorage();
   renderOKRs(); renderDashboard(); showToast('🗑 OKR supprimé');
 }
 
 function deleteKR(okrId, krId) {
   const okr = state.okrs.find(o=>o.id===okrId);
   if(okr) okr.keyResults = okr.keyResults.filter(k=>k.id!==krId);
+  saveToStorage();
   renderOKRs(); renderDashboard();
 }
 
@@ -906,6 +916,7 @@ function saveKPI() {
   } else {
     state.kpis.push(kpi);
   }
+  saveToStorage();
   closeModal('kpi-modal');
   renderKPIs(); renderDashboard();
   showToast('✅ KPI enregistré');
@@ -913,6 +924,7 @@ function saveKPI() {
 
 function deleteKPI(id) {
   state.kpis = state.kpis.filter(k=>k.id!==id);
+  saveToStorage();
   renderKPIs(); renderDashboard(); showToast('🗑 KPI supprimé');
 }
 
@@ -1109,7 +1121,64 @@ function exportExcel() {
   showToast(`✅ Export téléchargé : ${fname}`);
 }
 
+// ─── PERSISTANCE ─────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'oma-okr-kpi-v1';
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ okrs: state.okrs, kpis: state.kpis }));
+  } catch(e) {}
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.okrs)) state.okrs = data.okrs;
+      if (Array.isArray(data.kpis)) state.kpis = data.kpis;
+    }
+  } catch(e) {}
+}
+
+function exportJSON() {
+  const data = JSON.stringify({ okrs: state.okrs, kpis: state.kpis }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const now = new Date();
+  a.href = url;
+  a.download = `OMA_OKR_KPI_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ Sauvegarde JSON téléchargée');
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data.okrs) || !Array.isArray(data.kpis)) throw new Error();
+      state.okrs = data.okrs;
+      state.kpis = data.kpis;
+      saveToStorage();
+      renderDashboard();
+      renderOKRs();
+      renderKPIs();
+      showToast('✅ Données chargées depuis le fichier JSON');
+    } catch(err) {
+      showToast('⚠ Fichier JSON invalide');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
 // ─── INIT ────────────────────────────────────────────────────────────────────
+loadFromStorage();
 renderDashboard();
 </script>
 </body>
