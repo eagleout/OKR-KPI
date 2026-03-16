@@ -397,10 +397,10 @@ input[type=range] {
       <button class="btn btn-outline" style="font-size:0.85rem;padding:0.7rem 1.5rem;" onclick="exportJSON()">
         💾 Sauvegarder (.json)
       </button>
-      <button class="btn btn-outline" style="font-size:0.85rem;padding:0.7rem 1.5rem;" id="btn-import-json">
+      <label class="btn btn-outline" style="font-size:0.85rem;padding:0.7rem 1.5rem;cursor:pointer;display:inline-flex;align-items:center;">
         📂 Charger (.json)
-      </button>
-      <input type="file" id="json-import-input" accept=".json" style="position:fixed;top:-200px;left:-200px;width:1px;height:1px;opacity:0;">
+        <input type="file" id="json-import-input" accept=".json" onchange="importJSON(this)" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;">
+      </label>
     </div>
   </div>
 
@@ -1154,14 +1154,14 @@ function exportJSON() {
   showToast('✅ Sauvegarde JSON téléchargée');
 }
 
-function importJSON(event) {
-  const file = event.target.files[0];
+function importJSON(inputEl) {
+  const file = inputEl.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = function(e) {
     try {
       const data = JSON.parse(e.target.result);
-      if (!Array.isArray(data.okrs) || !Array.isArray(data.kpis)) throw new Error();
+      if (!Array.isArray(data.okrs) || !Array.isArray(data.kpis)) throw new Error('Format invalide');
       state.okrs = data.okrs;
       state.kpis = data.kpis;
       saveToStorage();
@@ -1172,7 +1172,7 @@ function importJSON(event) {
     } catch(err) {
       showToast('⚠ Fichier JSON invalide');
     }
-    event.target.value = '';
+    inputEl.value = '';
   };
   reader.readAsText(file);
 }
@@ -1180,16 +1180,6 @@ function importJSON(event) {
 // ─── INIT ────────────────────────────────────────────────────────────────────
 loadFromStorage();
 renderDashboard();
-
-// Bouton charger JSON — liaison après rendu DOM
-(function() {
-  const btn = document.getElementById('btn-import-json');
-  const inp = document.getElementById('json-import-input');
-  if (btn && inp) {
-    btn.addEventListener('click', function() { inp.click(); });
-    inp.addEventListener('change', importJSON);
-  }
-})();
 </script>
 </body>
 </html>
