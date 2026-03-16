@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMA — OKR & KPI Manager</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0d0d0d;
+  --cream: #f7f4ef;
+  --gold: #c9a84c;
+  --gold-light: #e8d5a3;
+  --blue: #1d3557;
+  --rust: #c45c2e;
+  --green: #2d6a4f;
+  --purple: #4a3f6b;
+  --teal: #457b9d;
+  --surface: #ffffff;
+  --border: #e8e4de;
+  --muted: #8a8580;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Barlow',sans-serif; background:var(--cream); color:var(--ink); min-height:100vh; }
+
+/* TOP BAR */
+.topbar {
+  background:var(--ink);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 2rem; height:58px;
+  border-bottom:2px solid var(--gold);
+  position:sticky; top:0; z-index:200;
+}
+.topbar-brand { font-family:'Syne',sans-serif; color:var(--gold); font-size:1rem; font-weight:800; letter-spacing:0.1em; }
+.topbar-tabs { display:flex; gap:0; height:100%; }
+.tab-btn {
+  padding:0 1.2rem; height:100%; border:none; background:transparent;
+  font-family:'DM Mono',monospace; font-size:0.7rem; letter-spacing:0.08em;
+  text-transform:uppercase; color:#666; cursor:pointer;
+  border-bottom:3px solid transparent; transition:color .2s,border-color .2s;
+}
+.tab-btn:hover { color:#ccc; }
+.tab-btn.active { color:var(--gold); border-bottom-color:var(--gold); }
+.topbar-right { display:flex; gap:0.75rem; align-items:center; }
+
+/* BUTTONS */
+.btn {
+  padding:0.5rem 1.1rem; border-radius:2px; border:none;
+  font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.06em;
+  text-transform:uppercase; cursor:pointer; transition:all .18s;
+  display:flex; align-items:center; gap:0.4rem;
+}
+.btn-gold { background:var(--gold); color:var(--ink); font-weight:700; }
+.btn-gold:hover { background:var(--gold-light); }
+.btn-outline { background:transparent; color:#aaa; border:1px solid #444; }
+.btn-outline:hover { border-color:#888; color:#fff; }
+.btn-danger { background:rgba(196,92,46,0.15); color:var(--rust); border:1px solid rgba(196,92,46,0.3); font-size:0.65rem; padding:0.3rem 0.7rem; }
+.btn-danger:hover { background:rgba(196,92,46,0.25); }
+.btn-add { background:rgba(201,168,76,0.12); color:var(--gold); border:1.5px dashed rgba(201,168,76,0.4); width:100%; margin-top:0.5rem; justify-content:center; padding:0.6rem; }
+.btn-add:hover { background:rgba(201,168,76,0.2); }
+.btn-sm { padding:0.25rem 0.6rem; font-size:0.65rem; }
+
+/* LAYOUT */
+.page { display:none; padding:2rem; max-width:1200px; margin:0 auto; animation:fadeUp .3s ease; }
+.page.active { display:block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+/* PAGE HEADER */
+.page-hero {
+  background:var(--ink); color:var(--cream);
+  border-radius:4px; padding:2rem 2.5rem; margin-bottom:2rem;
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:1rem; flex-wrap:wrap;
+}
+.page-hero h1 { font-family:'Syne',sans-serif; font-size:1.6rem; font-weight:800; }
+.page-hero h1 em { color:var(--gold); font-style:normal; }
+.page-hero p { color:#888; font-size:0.88rem; margin-top:0.4rem; max-width:480px; line-height:1.6; }
+.hero-stats { display:flex; gap:2rem; flex-wrap:wrap; margin-top:1rem; }
+.hstat { border-left:2px solid var(--gold); padding-left:0.8rem; }
+.hstat-num { font-family:'Syne',sans-serif; font-size:1.6rem; font-weight:800; color:var(--gold); line-height:1; }
+.hstat-label { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.08em; text-transform:uppercase; color:#666; margin-top:0.2rem; }
+
+/* SECTION TITLE */
+.section-title {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:1.2rem; padding-bottom:0.8rem; border-bottom:1px solid var(--border);
+}
+.section-title h2 { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; }
+.section-label {
+  font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.12em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:0.4rem;
+}
+
+/* CARDS */
+.card {
+  background:var(--surface); border:1px solid var(--border); border-radius:4px;
+  overflow:hidden; margin-bottom:1rem;
+  transition:box-shadow .2s;
+}
+.card:hover { box-shadow:0 6px 24px rgba(0,0,0,0.06); }
+.card-header {
+  padding:1rem 1.5rem; display:flex; align-items:center;
+  justify-content:space-between; gap:1rem;
+}
+.card-body { padding:1.2rem 1.5rem; border-top:1px solid var(--border); }
+.card-stripe { height:4px; }
+
+/* PILLAR BADGE */
+.badge {
+  display:inline-block; padding:0.15rem 0.55rem; border-radius:20px;
+  font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.06em;
+  text-transform:uppercase; font-weight:500;
+}
+.badge-blue   { background:rgba(29,53,87,.1);  color:var(--blue); }
+.badge-rust   { background:rgba(196,92,46,.1); color:var(--rust); }
+.badge-green  { background:rgba(45,106,79,.1); color:var(--green); }
+.badge-purple { background:rgba(74,63,107,.1); color:var(--purple); }
+.badge-teal   { background:rgba(69,123,157,.1);color:var(--teal); }
+.badge-gray   { background:rgba(0,0,0,.06);    color:#666; }
+
+/* PROGRESS */
+.progress-wrap { display:flex; align-items:center; gap:0.8rem; }
+.progress-bar { flex:1; height:6px; background:#f0ece4; border-radius:3px; overflow:hidden; }
+.progress-fill { height:100%; border-radius:3px; transition:width .6s ease; }
+.progress-pct { font-family:'DM Mono',monospace; font-size:0.75rem; color:var(--muted); min-width:36px; text-align:right; }
+
+/* STATUS PILL */
+.status-pill {
+  padding:0.2rem 0.65rem; border-radius:20px;
+  font-family:'DM Mono',monospace; font-size:0.65rem; font-weight:500;
+}
+.status-on { background:#e8f5e9; color:#2d6a4f; }
+.status-risk { background:#fff8e1; color:#c45c2e; }
+.status-off { background:#ffebee; color:#c62828; }
+
+/* KEY RESULTS */
+.kr-list { display:flex; flex-direction:column; gap:0.6rem; }
+.kr-item {
+  background:#fafaf8; border:1px solid var(--border); border-radius:3px;
+  padding:0.7rem 1rem; display:grid; grid-template-columns:1fr auto auto;
+  gap:0.8rem; align-items:center;
+}
+.kr-text { font-size:0.88rem; }
+.kr-meta { font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--muted); white-space:nowrap; }
+
+/* FORM */
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.8rem; }
+.form-full { grid-column:1/-1; }
+label { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:0.3rem; }
+input, select, textarea {
+  width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border);
+  border-radius:2px; font-family:'Barlow',sans-serif; font-size:0.88rem;
+  background:var(--surface); color:var(--ink);
+  transition:border-color .2s;
+}
+input:focus, select:focus, textarea:focus {
+  outline:none; border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(201,168,76,.12);
+}
+textarea { resize:vertical; min-height:60px; }
+.range-wrap { display:flex; align-items:center; gap:0.8rem; }
+input[type=range] {
+  flex:1; padding:0; border:none; accent-color:var(--gold);
+}
+.range-val {
+  font-family:'DM Mono',monospace; font-size:0.85rem; font-weight:500;
+  min-width:40px; text-align:center; color:var(--gold);
+}
+
+/* MODAL */
+.overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+  z-index:500; align-items:center; justify-content:center;
+  padding:1.5rem;
+}
+.overlay.open { display:flex; }
+.modal {
+  background:var(--cream); border-radius:6px; width:100%;
+  max-width:600px; max-height:90vh; overflow-y:auto;
+  box-shadow:0 24px 60px rgba(0,0,0,0.25);
+  animation:modalIn .25s ease;
+}
+@keyframes modalIn { from{opacity:0;transform:translateY(20px) scale(.98)} to{opacity:1;transform:none} }
+.modal-header {
+  background:var(--ink); padding:1.3rem 1.6rem;
+  display:flex; align-items:center; justify-content:space-between;
+  border-radius:6px 6px 0 0;
+}
+.modal-title { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; color:var(--cream); }
+.modal-close { background:none; border:none; color:#666; font-size:1.4rem; cursor:pointer; line-height:1; transition:color .2s; }
+.modal-close:hover { color:var(--cream); }
+.modal-body { padding:1.6rem; display:flex; flex-direction:column; gap:1rem; }
+.modal-footer { padding:1rem 1.6rem; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:0.6rem; }
+
+/* KPI TABLE */
+.kpi-table { width:100%; border-collapse:collapse; }
+.kpi-table th {
+  padding:0.6rem 1rem; text-align:left;
+  font-family:'DM Mono',monospace; font-size:0.65rem;
+  letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);
+  background:#fafaf8; border-bottom:2px solid var(--border);
+}
+.kpi-table td {
+  padding:0.65rem 1rem; border-bottom:1px solid var(--border);
+  font-size:0.86rem; vertical-align:middle;
+}
+.kpi-table tr:last-child td { border-bottom:none; }
+.kpi-table tr:hover td { background:#fafaf8; }
+.trend { font-size:1.1rem; }
+.gap-pos { color:var(--green); font-weight:600; font-family:'DM Mono',monospace; font-size:0.8rem; }
+.gap-neg { color:var(--rust); font-weight:600; font-family:'DM Mono',monospace; font-size:0.8rem; }
+
+/* DASHBOARD METRICS */
+.metrics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+.metric-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:4px;
+  padding:1.2rem 1.5rem; position:relative; overflow:hidden;
+}
+.metric-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+}
+.mc-blue::before { background:var(--blue); }
+.mc-rust::before { background:var(--rust); }
+.mc-green::before { background:var(--green); }
+.mc-purple::before { background:var(--purple); }
+.mc-gold::before { background:var(--gold); }
+.metric-val { font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; line-height:1; margin:0.3rem 0; }
+.metric-label { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+.metric-sub { font-size:0.78rem; color:var(--muted); margin-top:0.3rem; }
+
+/* EXPORT PANEL */
+.export-panel {
+  background:var(--ink); border-radius:4px; padding:1.8rem 2rem;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:2rem; flex-wrap:wrap; margin-bottom:2rem;
+}
+.export-info h3 { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; color:var(--cream); }
+.export-info p { font-size:0.82rem; color:#888; margin-top:0.3rem; }
+.export-btns { display:flex; gap:0.75rem; flex-wrap:wrap; }
+
+/* TOAST */
+.toast {
+  position:fixed; bottom:2rem; right:2rem; z-index:999;
+  background:var(--ink); color:var(--cream); padding:0.9rem 1.5rem;
+  border-radius:4px; border-left:3px solid var(--gold);
+  font-size:0.88rem; font-family:'DM Mono',monospace;
+  transform:translateY(100px); opacity:0;
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+  max-width:320px;
+}
+.toast.show { transform:translateY(0); opacity:1; }
+
+/* SUMMARY CHART (CSS only) */
+.bar-chart { display:flex; flex-direction:column; gap:0.6rem; }
+.bar-row { display:flex; align-items:center; gap:0.8rem; font-size:0.83rem; }
+.bar-label { min-width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:0.8rem; }
+.bar-track { flex:1; height:18px; background:#f0ece4; border-radius:3px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:3px; display:flex; align-items:center; padding-left:6px; font-family:'DM Mono',monospace; font-size:0.65rem; color:white; font-weight:500; transition:width .8s ease; min-width:24px; }
+.bar-pct { min-width:36px; font-family:'DM Mono',monospace; font-size:0.75rem; color:var(--muted); }
+
+/* EMPTY STATE */
+.empty {
+  text-align:center; padding:3rem 2rem; color:var(--muted);
+  border:2px dashed var(--border); border-radius:4px;
+}
+.empty-icon { font-size:2.5rem; margin-bottom:0.8rem; }
+.empty h3 { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; margin-bottom:0.4rem; }
+.empty p { font-size:0.85rem; }
+
+/* RESPONSIVE */
+@media(max-width:640px) {
+  .page { padding:1rem; }
+  .form-grid { grid-template-columns:1fr; }
+  .topbar-tabs { display:none; }
+  .page-hero { padding:1.2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand">OMA SERVICES</div>
+  <div class="topbar-tabs">
+    <button class="tab-btn active" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="tab-btn" onclick="showPage('okr')">OKRs</button>
+    <button class="tab-btn" onclick="showPage('kpi')">KPIs</button>
+    <button class="tab-btn" onclick="showPage('export')">Export</button>
+  </div>
+  <div class="topbar-right">
+    <button class="btn btn-gold" onclick="showPage('export')">⬇ Exporter Excel</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ DASHBOARD ═══════════════════════════ -->
+<div id="page-dashboard" class="page active">
+  <div class="page-hero">
+    <div>
+      <h1>Tableau de Bord <em>OKR & KPI</em></h1>
+      <p>Vue synthétique de votre performance par pilier. Mettez à jour vos données dans les onglets OKR et KPI.</p>
+      <div class="hero-stats" id="dash-stats"></div>
+    </div>
+    <button class="btn btn-gold" onclick="showPage('export')" style="align-self:flex-start">
+      ⬇ Exporter Excel
+    </button>
+  </div>
+
+  <div class="metrics-grid" id="dash-metrics"></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;flex-wrap:wrap;">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="section-label">OKR Progress</div>
+          <strong style="font-family:'Syne',sans-serif;">Avancement par objectif</strong>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="dash-okr-bars" class="bar-chart"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="section-label">KPI Snapshot</div>
+          <strong style="font-family:'Syne',sans-serif;">Indicateurs clés</strong>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="dash-kpi-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ OKR PAGE ═══════════════════════════ -->
+<div id="page-okr" class="page">
+  <div class="page-hero">
+    <div>
+      <h1><em>Objectifs</em> & Key Results</h1>
+      <p>Définissez vos objectifs stratégiques et les résultats clés associés. Ciblez 3-5 OKRs par trimestre.</p>
+    </div>
+    <button class="btn btn-gold" onclick="openOKRModal()">+ Ajouter OKR</button>
+  </div>
+
+  <div id="okr-list"></div>
+</div>
+
+<!-- ═══════════════════════════ KPI PAGE ═══════════════════════════ -->
+<div id="page-kpi" class="page">
+  <div class="page-hero">
+    <div>
+      <h1><em>Indicateurs</em> de Performance</h1>
+      <p>Suivez vos KPIs par pilier. Renseignez les valeurs actuelles pour comparer avec vos cibles.</p>
+    </div>
+    <button class="btn btn-gold" onclick="openKPIModal()">+ Ajouter KPI</button>
+  </div>
+
+  <div class="card">
+    <table class="kpi-table" id="kpi-table">
+      <thead>
+        <tr>
+          <th>Pilier</th>
+          <th>Indicateur</th>
+          <th>Cible</th>
+          <th>Actuel</th>
+          <th>Écart</th>
+          <th>Tendance</th>
+          <th>Fréquence</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="kpi-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ EXPORT PAGE ═══════════════════════════ -->
+<div id="page-export" class="page">
+  <div class="page-hero">
+    <div>
+      <h1>Export <em>Excel</em></h1>
+      <p>Générez un fichier .xlsx complet avec vos données OKR & KPI, incluant graphiques, camemberts et tableaux de bord.</p>
+    </div>
+  </div>
+
+  <div class="export-panel">
+    <div class="export-info">
+      <h3>📊 Export complet avec graphiques</h3>
+      <p>Dashboard · OKR Progress · KPI Charts · Données brutes — 4 feuilles Excel</p>
+    </div>
+    <div class="export-btns">
+      <button class="btn btn-gold" style="font-size:0.85rem;padding:0.7rem 1.5rem;" onclick="exportExcel()">
+        ⬇ Télécharger Excel (.xlsx)
+      </button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-bottom:2rem;">
+    <div class="card">
+      <div class="card-header" style="flex-direction:column;align-items:flex-start;gap:0.4rem;">
+        <div class="section-label">Feuille 1</div>
+        <strong>📊 Dashboard</strong>
+        <div style="font-size:0.82rem;color:var(--muted)">Tableau récap OKRs + KPIs avec statuts colorés</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" style="flex-direction:column;align-items:flex-start;gap:0.4rem;">
+        <div class="section-label">Feuille 2</div>
+        <strong>📈 OKR Progress</strong>
+        <div style="font-size:0.82rem;color:var(--muted)">Graphique barres + camembert statuts</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" style="flex-direction:column;align-items:flex-start;gap:0.4rem;">
+        <div class="section-label">Feuille 3</div>
+        <strong>📉 KPI Charts</strong>
+        <div style="font-size:0.82rem;color:var(--muted)">Réalisé vs Cible + répartition par pilier</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" style="flex-direction:column;align-items:flex-start;gap:0.4rem;">
+        <div class="section-label">Feuille 4</div>
+        <strong>📋 Données Brutes</strong>
+        <div style="font-size:0.82rem;color:var(--muted)">Toutes les données filtrables & modifiables</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <strong>Paramètres d'export</strong>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div>
+          <label>Nom de l'entreprise</label>
+          <input type="text" id="exp-company" value="OMA Services">
+        </div>
+        <div>
+          <label>Période / Trimestre</label>
+          <input type="text" id="exp-period" value="Q2 2025">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL OKR ═══════════════ -->
+<div class="overlay" id="okr-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="okr-modal-title">Nouvel OKR</div>
+      <button class="modal-close" onclick="closeModal('okr-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label>Objectif principal *</label>
+        <input type="text" id="okr-objective" placeholder="Ex: Devenir le leader de la conciergerie en IDF">
+      </div>
+      <div class="form-grid">
+        <div>
+          <label>Pilier</label>
+          <select id="okr-pillar">
+            <option value="Marketing">Marketing</option>
+            <option value="Commercial">Commercial</option>
+            <option value="Opérations">Opérations</option>
+            <option value="RH">RH</option>
+          </select>
+        </div>
+        <div>
+          <label>Responsable</label>
+          <input type="text" id="okr-owner" placeholder="Associé / équipe">
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+          <label style="margin:0">Key Results</label>
+          <button class="btn btn-sm btn-outline" onclick="addKRField()">+ Ajouter KR</button>
+        </div>
+        <div id="kr-fields" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('okr-modal')">Annuler</button>
+      <button class="btn btn-gold" onclick="saveOKR()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL KPI ═══════════════ -->
+<div class="overlay" id="kpi-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="kpi-modal-title">Nouvel KPI</div>
+      <button class="modal-close" onclick="closeModal('kpi-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div>
+          <label>Pilier *</label>
+          <select id="kpi-pillar">
+            <option value="Marketing">Marketing</option>
+            <option value="Commercial">Commercial</option>
+            <option value="Opérations">Opérations</option>
+            <option value="RH">RH</option>
+          </select>
+        </div>
+        <div>
+          <label>Fréquence</label>
+          <select id="kpi-freq">
+            <option>Hebdomadaire</option>
+            <option>Mensuel</option>
+            <option>Trimestriel</option>
+            <option>Annuel</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>Nom de l'indicateur *</label>
+        <input type="text" id="kpi-name" placeholder="Ex: Taux de qualité missions">
+      </div>
+      <div class="form-grid">
+        <div>
+          <label>Cible</label>
+          <input type="text" id="kpi-target" placeholder="Ex: 95%">
+        </div>
+        <div>
+          <label>Valeur actuelle</label>
+          <input type="text" id="kpi-current" placeholder="Ex: 87%">
+        </div>
+      </div>
+      <div>
+        <label>Tendance</label>
+        <select id="kpi-trend">
+          <option value="📈">📈 En hausse</option>
+          <option value="📉">📉 En baisse</option>
+          <option value="→">→ Stable</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('kpi-modal')">Annuler</button>
+      <button class="btn btn-gold" onclick="saveKPI()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let state = {
+  okrs: [
+    {
+      id: 1, title: "Atteindre 40 propriétaires Airbnb actifs", pillar:"Commercial",
+      owner:"Associé Commercial",
+      keyResults:[
+        {id:1, title:"Signer 10 nouveaux propriétaires en Q1", owner:"Assoc. Commercial", target:"10", current:"7", progress:70},
+        {id:2, title:"Taux de rétention propriétaires ≥ 85%", owner:"Assoc. Commercial", target:"85%", current:"80%", progress:65},
+        {id:3, title:"Pipeline actif de 20+ prospects qualifiés", owner:"Assoc. Commercial", target:"20", current:"22", progress:100},
+      ]
+    },
+    {
+      id: 2, title: "Maintenir qualité opérationnelle ≥ 95%", pillar:"Opérations",
+      owner:"Associé Opérations",
+      keyResults:[
+        {id:1, title:"Documenter 100% des SOPs terrain", owner:"Assoc. Ops", target:"100%", current:"60%", progress:60},
+        {id:2, title:"Taux de réclamations < 2%", owner:"Assoc. Ops", target:"2%", current:"1.4%", progress:90},
+        {id:3, title:"12+ missions/agent/semaine", owner:"Assoc. Ops", target:"12", current:"10", progress:75},
+      ]
+    },
+    {
+      id: 3, title: "Générer 80+ leads inbound par mois", pillar:"Marketing",
+      owner:"Associé Commercial",
+      keyResults:[
+        {id:1, title:"SEO : 15% de croissance trafic/mois", owner:"Marketing", target:"15%", current:"8%", progress:53},
+        {id:2, title:"Note Google ≥ 4.8 étoiles", owner:"Marketing", target:"4.8", current:"4.6", progress:80},
+      ]
+    },
+    {
+      id: 4, title: "Réduire turnover équipes < 25%", pillar:"RH",
+      owner:"Office Manager",
+      keyResults:[
+        {id:1, title:"eNPS équipes ≥ 40", owner:"RH", target:"40", current:"28", progress:45},
+        {id:2, title:"100% agents formés sur les SOPs (M3)", owner:"RH", target:"100%", current:"60%", progress:60},
+      ]
+    }
+  ],
+  kpis: [
+    {id:1, pillar:"Marketing",    name:"Leads inbound / mois",         target:"80",   current:"52",   trend:"📈", frequency:"Hebdomadaire"},
+    {id:2, pillar:"Marketing",    name:"Note Airbnb / Google",          target:"4.8",  current:"4.6",  trend:"📈", frequency:"Mensuel"},
+    {id:3, pillar:"Commercial",   name:"CA mensuel récurrent (k€)",     target:"45",   current:"38",   trend:"📈", frequency:"Mensuel"},
+    {id:4, pillar:"Commercial",   name:"Taux de conversion leads",      target:"25",   current:"19",   trend:"→",  frequency:"Mensuel"},
+    {id:5, pillar:"Commercial",   name:"Contrats B2B actifs",           target:"15",   current:"8",    trend:"📈", frequency:"Mensuel"},
+    {id:6, pillar:"Opérations",   name:"Taux de qualité missions (%)",  target:"95",   current:"91",   trend:"📈", frequency:"Hebdomadaire"},
+    {id:7, pillar:"Opérations",   name:"Ponctualité interventions (%)", target:"95",   current:"93",   trend:"→",  frequency:"Hebdomadaire"},
+    {id:8, pillar:"Opérations",   name:"Missions / agent / semaine",    target:"12",   current:"10",   trend:"📈", frequency:"Hebdomadaire"},
+    {id:9, pillar:"RH",           name:"Turnover annuel (%)",           target:"25",   current:"32",   trend:"📉", frequency:"Trimestriel"},
+    {id:10,pillar:"RH",           name:"eNPS équipes",                  target:"40",   current:"28",   trend:"📈", frequency:"Trimestriel"},
+  ],
+  editingOKR: null,
+  editingKPI: null,
+  krCounter: 0
+};
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const pillarColor = p => ({
+  Marketing:"blue", Commercial:"rust", "Opérations":"green",
+  RH:"purple"
+}[p] || "gray");
+
+const pillarHex = p => ({
+  Marketing:"1D3557", Commercial:"C45C2E", "Opérations":"2D6A4F",
+  RH:"4A3F6B"
+}[p] || "666666");
+
+const statusClass = prog => prog >= 80 ? "status-on" : prog >= 50 ? "status-risk" : "status-off";
+const statusLabel = prog => prog >= 80 ? "✅ On Track" : prog >= 50 ? "⚠️ At Risk" : "🔴 Off Track";
+const progressColor = prog => prog >= 80 ? "#2d6a4f" : prog >= 50 ? "#c45c2e" : "#c62828";
+
+function avgProgress(okr) {
+  const krs = okr.keyResults;
+  return krs.length ? krs.reduce((s,k)=>s+parseFloat(k.progress||0),0)/krs.length : 0;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const map = ['dashboard','okr','kpi','export'];
+  const idx = map.indexOf(id);
+  if(idx>=0) document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  if(id==='dashboard') renderDashboard();
+  if(id==='okr') renderOKRs();
+  if(id==='kpi') renderKPIs();
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const totalOKRs = state.okrs.length;
+  const totalKRs = state.okrs.reduce((s,o)=>s+o.keyResults.length,0);
+  const onTrack = state.okrs.filter(o=>avgProgress(o)>=80).length;
+  const totalKPIs = state.kpis.length;
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="hstat"><div class="hstat-num">${totalOKRs}</div><div class="hstat-label">OKRs actifs</div></div>
+    <div class="hstat"><div class="hstat-num">${totalKRs}</div><div class="hstat-label">Key Results</div></div>
+    <div class="hstat"><div class="hstat-num">${onTrack}/${totalOKRs}</div><div class="hstat-label">On Track</div></div>
+    <div class="hstat"><div class="hstat-num">${totalKPIs}</div><div class="hstat-label">KPIs suivis</div></div>
+  `;
+
+  const pillars = ["Marketing","Commercial","Opérations","RH"];
+  const mcClass = ["mc-blue","mc-rust","mc-green","mc-purple"];
+  document.getElementById('dash-metrics').innerHTML = pillars.map((p,i)=>{
+    const okrCount = state.okrs.filter(o=>o.pillar===p).length;
+    const kpiCount = state.kpis.filter(k=>k.pillar===p).length;
+    const avg = state.okrs.filter(o=>o.pillar===p).reduce((s,o)=>s+avgProgress(o),0)/(okrCount||1);
+    return `<div class="metric-card ${mcClass[i]}">
+      <div class="metric-label">${p}</div>
+      <div class="metric-val">${Math.round(avg)||0}%</div>
+      <div class="metric-sub">${okrCount} OKR · ${kpiCount} KPI</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dash-okr-bars').innerHTML = state.okrs.length
+    ? state.okrs.map(o=>{
+        const prog = avgProgress(o);
+        return `<div class="bar-row">
+          <div class="bar-label" title="${o.title}">${o.title.length>30?o.title.slice(0,28)+'…':o.title}</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${prog}%;background:${progressColor(prog)}">${prog>15?Math.round(prog)+'%':''}</div>
+          </div>
+          <div class="bar-pct">${Math.round(prog)}%</div>
+        </div>`;
+      }).join('')
+    : '<div class="empty"><div class="empty-icon">🎯</div><h3>Aucun OKR</h3><p>Ajoutez des OKRs pour voir leur avancement</p></div>';
+
+  document.getElementById('dash-kpi-list').innerHTML = state.kpis.length
+    ? state.kpis.slice(0,8).map(k=>{
+        let gap='–', gapClass='';
+        try {
+          const cur=parseFloat(k.current), tgt=parseFloat(k.target);
+          const g=cur-tgt; gap=(g>=0?'+':'')+g.toFixed(1);
+          gapClass=g>=0?'gap-pos':'gap-neg';
+        }catch(e){}
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border);font-size:0.83rem;gap:0.5rem;">
+          <div>
+            <span class="badge badge-${pillarColor(k.pillar)}" style="margin-right:0.4rem">${k.pillar}</span>
+            ${k.name}
+          </div>
+          <div style="display:flex;align-items:center;gap:0.8rem;flex-shrink:0;">
+            <span style="color:var(--muted);font-size:0.78rem;">${k.current} / ${k.target}</span>
+            <span class="${gapClass}">${gap}</span>
+            <span class="trend">${k.trend}</span>
+          </div>
+        </div>`;
+      }).join('')
+    : '<div class="empty"><div class="empty-icon">📊</div><h3>Aucun KPI</h3><p>Ajoutez des indicateurs pour les voir ici</p></div>';
+}
+
+// ─── OKR RENDER ──────────────────────────────────────────────────────────────
+function renderOKRs() {
+  const el = document.getElementById('okr-list');
+  if(!state.okrs.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🎯</div><h3>Aucun OKR défini</h3><p>Cliquez sur "+ Ajouter OKR" pour commencer</p></div>`;
+    return;
+  }
+  el.innerHTML = state.okrs.map(o=>{
+    const prog = avgProgress(o);
+    const krs = o.keyResults.map(kr=>`
+      <div class="kr-item">
+        <div>
+          <div class="kr-text">${kr.title}</div>
+          <div class="kr-meta">Resp: ${kr.owner||'–'} · Cible: ${kr.target||'–'} · Actuel: ${kr.current||'–'}</div>
+          <div class="progress-wrap" style="margin-top:0.4rem">
+            <div class="progress-bar"><div class="progress-fill" style="width:${kr.progress}%;background:${progressColor(kr.progress)}"></div></div>
+            <div class="progress-pct">${kr.progress}%</div>
+          </div>
+        </div>
+        <span class="status-pill ${statusClass(kr.progress)}">${statusLabel(kr.progress)}</span>
+        <button class="btn btn-danger" onclick="deleteKR(${o.id},${kr.id})">✕</button>
+      </div>`).join('');
+    return `<div class="card">
+      <div class="card-stripe" style="background:#${pillarHex(o.pillar)}"></div>
+      <div class="card-header">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.4rem;flex-wrap:wrap">
+            <strong style="font-family:'Syne',sans-serif;font-size:1rem">${o.title}</strong>
+            <span class="badge badge-${pillarColor(o.pillar)}">${o.pillar}</span>
+            <span class="status-pill ${statusClass(prog)}">${statusLabel(prog)}</span>
+          </div>
+          <div style="font-size:0.8rem;color:var(--muted)">Resp: ${o.owner||'–'} · ${o.keyResults.length} Key Result(s)</div>
+          <div class="progress-wrap" style="margin-top:0.6rem;max-width:400px">
+            <div class="progress-bar"><div class="progress-fill" style="width:${prog}%;background:${progressColor(prog)}"></div></div>
+            <div class="progress-pct">${Math.round(prog)}%</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-shrink:0">
+          <button class="btn btn-outline btn-sm" onclick="openOKRModal(${o.id})">✏ Éditer</button>
+          <button class="btn btn-danger" onclick="deleteOKR(${o.id})">✕ Supprimer</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="kr-list">${krs}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── KPI RENDER ──────────────────────────────────────────────────────────────
+function renderKPIs() {
+  const tbody = document.getElementById('kpi-tbody');
+  if(!state.kpis.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty" style="margin:1rem"><div class="empty-icon">📊</div><h3>Aucun KPI</h3><p>Cliquez sur "+ Ajouter KPI"</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.kpis.map(k=>{
+    let gap='–', gapClass='';
+    try {
+      const cur=parseFloat(k.current), tgt=parseFloat(k.target);
+      const g=cur-tgt; gap=(g>=0?'+':'')+g.toFixed(1);
+      gapClass=g>=0?'gap-pos':'gap-neg';
+    }catch(e){}
+    return `<tr>
+      <td><span class="badge badge-${pillarColor(k.pillar)}">${k.pillar}</span></td>
+      <td><strong>${k.name}</strong></td>
+      <td style="font-family:'DM Mono',monospace;font-size:0.8rem">${k.target}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:0.8rem">${k.current}</td>
+      <td class="${gapClass}">${gap}</td>
+      <td class="trend">${k.trend}</td>
+      <td style="font-size:0.78rem;color:var(--muted)">${k.frequency}</td>
+      <td style="display:flex;gap:0.4rem">
+        <button class="btn btn-outline btn-sm" onclick="openKPIModal(${k.id})">✏</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteKPI(${k.id})">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── OKR MODAL ───────────────────────────────────────────────────────────────
+function openOKRModal(id=null) {
+  state.editingOKR = id;
+  state.krCounter = 0;
+  document.getElementById('okr-modal-title').textContent = id ? 'Modifier OKR' : 'Nouvel OKR';
+  const okr = id ? state.okrs.find(o=>o.id===id) : null;
+  document.getElementById('okr-objective').value = okr?.title||'';
+  document.getElementById('okr-pillar').value = okr?.pillar||'Marketing';
+  document.getElementById('okr-owner').value = okr?.owner||'';
+  const krf = document.getElementById('kr-fields');
+  krf.innerHTML = '';
+  if(okr) {
+    okr.keyResults.forEach(kr=>addKRField(kr));
+  } else {
+    addKRField(); addKRField();
+  }
+  document.getElementById('okr-modal').classList.add('open');
+}
+
+function addKRField(kr=null) {
+  state.krCounter++;
+  const id = state.krCounter;
+  const div = document.createElement('div');
+  div.id = `kr-field-${id}`;
+  div.style.cssText='background:#fafaf8;border:1px solid var(--border);border-radius:3px;padding:0.9rem;position:relative';
+  div.innerHTML = `
+    <button onclick="document.getElementById('kr-field-${id}').remove()" style="position:absolute;top:0.5rem;right:0.5rem;background:none;border:none;color:#bbb;cursor:pointer;font-size:1.1rem;">×</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.5rem">
+      <div style="grid-column:1/-1"><label>Key Result</label>
+        <input type="text" class="kr-title" placeholder="Ex: Signer 10 contrats B2B" value="${kr?.title||''}"></div>
+      <div><label>Responsable</label><input type="text" class="kr-owner" placeholder="Nom / équipe" value="${kr?.owner||''}"></div>
+      <div><label>Cible</label><input type="text" class="kr-target" placeholder="Ex: 10, 95%" value="${kr?.target||''}"></div>
+      <div><label>Actuel</label><input type="text" class="kr-current" placeholder="Valeur actuelle" value="${kr?.current||''}"></div>
+      <div>
+        <label>Avancement (${kr?.progress||0}%)</label>
+        <div class="range-wrap">
+          <input type="range" min="0" max="100" value="${kr?.progress||0}"
+            oninput="this.nextElementSibling.textContent=this.value+'%';this.previousElementSibling.textContent='Avancement ('+this.value+'%)'" class="kr-progress">
+          <span class="range-val">${kr?.progress||0}%</span>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('kr-fields').appendChild(div);
+}
+
+function saveOKR() {
+  const title = document.getElementById('okr-objective').value.trim();
+  if(!title) { showToast('⚠ Veuillez saisir un objectif'); return; }
+  const pillar = document.getElementById('okr-pillar').value;
+  const owner = document.getElementById('okr-owner').value.trim();
+
+  const krs = Array.from(document.getElementById('kr-fields').children).map((div,i)=>{
+    return {
+      id: i+1,
+      title: div.querySelector('.kr-title').value.trim(),
+      owner: div.querySelector('.kr-owner').value.trim(),
+      target: div.querySelector('.kr-target').value.trim(),
+      current: div.querySelector('.kr-current').value.trim(),
+      progress: parseFloat(div.querySelector('.kr-progress').value)||0
+    };
+  }).filter(k=>k.title);
+
+  if(state.editingOKR) {
+    const idx = state.okrs.findIndex(o=>o.id===state.editingOKR);
+    state.okrs[idx] = {...state.okrs[idx], title, pillar, owner, keyResults:krs};
+  } else {
+    state.okrs.push({id:Date.now(), title, pillar, owner, keyResults:krs});
+  }
+  closeModal('okr-modal');
+  renderOKRs();
+  renderDashboard();
+  showToast('✅ OKR enregistré');
+}
+
+function deleteOKR(id) {
+  state.okrs = state.okrs.filter(o=>o.id!==id);
+  renderOKRs(); renderDashboard(); showToast('🗑 OKR supprimé');
+}
+
+function deleteKR(okrId, krId) {
+  const okr = state.okrs.find(o=>o.id===okrId);
+  if(okr) okr.keyResults = okr.keyResults.filter(k=>k.id!==krId);
+  renderOKRs(); renderDashboard();
+}
+
+// ─── KPI MODAL ───────────────────────────────────────────────────────────────
+function openKPIModal(id=null) {
+  state.editingKPI = id;
+  document.getElementById('kpi-modal-title').textContent = id ? 'Modifier KPI' : 'Nouvel KPI';
+  const kpi = id ? state.kpis.find(k=>k.id===id) : null;
+  document.getElementById('kpi-pillar').value = kpi?.pillar||'Marketing';
+  document.getElementById('kpi-name').value = kpi?.name||'';
+  document.getElementById('kpi-target').value = kpi?.target||'';
+  document.getElementById('kpi-current').value = kpi?.current||'';
+  document.getElementById('kpi-freq').value = kpi?.frequency||'Mensuel';
+  document.getElementById('kpi-trend').value = kpi?.trend||'→';
+  document.getElementById('kpi-modal').classList.add('open');
+}
+
+function saveKPI() {
+  const name = document.getElementById('kpi-name').value.trim();
+  if(!name) { showToast('⚠ Veuillez saisir un nom'); return; }
+  const kpi = {
+    id: state.editingKPI || Date.now(),
+    pillar: document.getElementById('kpi-pillar').value,
+    name,
+    target: document.getElementById('kpi-target').value.trim(),
+    current: document.getElementById('kpi-current').value.trim(),
+    frequency: document.getElementById('kpi-freq').value,
+    trend: document.getElementById('kpi-trend').value
+  };
+  if(state.editingKPI) {
+    const idx = state.kpis.findIndex(k=>k.id===state.editingKPI);
+    state.kpis[idx] = kpi;
+  } else {
+    state.kpis.push(kpi);
+  }
+  closeModal('kpi-modal');
+  renderKPIs(); renderDashboard();
+  showToast('✅ KPI enregistré');
+}
+
+function deleteKPI(id) {
+  state.kpis = state.kpis.filter(k=>k.id!==id);
+  renderKPIs(); renderDashboard(); showToast('🗑 KPI supprimé');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Click outside closes modal
+document.querySelectorAll('.overlay').forEach(o=>{
+  o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
+});
+
+// ─── EXCEL EXPORT ────────────────────────────────────────────────────────────
+function exportExcel() {
+  const company = document.getElementById('exp-company').value || 'OMA Services';
+  const period = document.getElementById('exp-period').value || 'Q2 2025';
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('fr-FR');
+
+  const wb = XLSX.utils.book_new();
+
+  // ── SHEET 1: DASHBOARD ──────────────────────────────────────────────────
+  const dash = [];
+  dash.push([`${company} — Tableau de Bord OKR & KPI`, '', '', '', '', '', '']);
+  dash.push([`Période : ${period}   •   Exporté le ${dateStr}`, '', '', '', '', '', '']);
+  dash.push([]);
+  dash.push(['═══ OBJECTIFS CLÉS (OKR) ═══', '', '', '', '', '', '']);
+  dash.push(['Objectif', 'Key Result', 'Responsable', 'Cible', 'Actuel', 'Avancement (%)', 'Statut']);
+  state.okrs.forEach(o=>{
+    (o.keyResults.length ? o.keyResults : [{title:'–',owner:'–',target:'–',current:'–',progress:0}])
+    .forEach((kr,i)=>{
+      const prog = parseFloat(kr.progress||0);
+      const status = prog>=80?'✅ On Track': prog>=50?'⚠️ At Risk':'🔴 Off Track';
+      dash.push([i===0?o.title:'', kr.title, kr.owner, kr.target, kr.current, prog, status]);
+    });
+  });
+  dash.push([]);
+  dash.push(['═══ INDICATEURS DE PERFORMANCE (KPI) ═══', '', '', '', '', '', '']);
+  dash.push(['Pilier', 'Indicateur', 'Cible', 'Actuel', 'Écart', 'Tendance', 'Fréquence']);
+  state.kpis.forEach(k=>{
+    let gap='–';
+    try { const g=parseFloat(k.current)-parseFloat(k.target); gap=(g>=0?'+':'')+g.toFixed(1); } catch(e){}
+    dash.push([k.pillar, k.name, k.target, k.current, gap, k.trend, k.frequency]);
+  });
+
+  const ws1 = XLSX.utils.aoa_to_sheet(dash);
+  ws1['!cols'] = [{wch:32},{wch:34},{wch:18},{wch:12},{wch:12},{wch:16},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws1, '📊 Dashboard');
+
+  // ── SHEET 2: OKR PROGRESS ──────────────────────────────────────────────
+  const okrData = [['Objectif','Pilier','Avancement moyen (%)','Statut','Key Results count']];
+  state.okrs.forEach(o=>{
+    const avg = Math.round(avgProgress(o));
+    const status = avg>=80?'On Track': avg>=50?'At Risk':'Off Track';
+    okrData.push([o.title, o.pillar, avg, status, o.keyResults.length]);
+  });
+  okrData.push([]);
+  okrData.push(['KR Détail','Objectif parent','Responsable','Cible','Actuel','Avancement (%)','Statut']);
+  state.okrs.forEach(o=>{
+    o.keyResults.forEach(kr=>{
+      const prog=parseFloat(kr.progress||0);
+      okrData.push([kr.title, o.title, kr.owner, kr.target, kr.current, prog,
+        prog>=80?'On Track': prog>=50?'At Risk':'Off Track']);
+    });
+  });
+
+  const ws2 = XLSX.utils.aoa_to_sheet(okrData);
+  ws2['!cols']=[{wch:36},{wch:18},{wch:20},{wch:14},{wch:10},{wch:18},{wch:12},{wch:14}];
+
+  // Add a bar chart via XLSX chart (using sheet data as chart source)
+  // Note: SheetJS CE doesn't support native charts; we embed a helper chart sheet
+  XLSX.utils.book_append_sheet(wb, ws2, '📈 OKR Progress');
+
+  // ── SHEET 3: KPI ANALYSIS ──────────────────────────────────────────────
+  const kpiData = [['Pilier','Indicateur','Cible','Actuel','Écart','Écart %','Tendance','Fréquence','Statut']];
+  state.kpis.forEach(k=>{
+    let gap='–', gapPct='–', statusTxt='–';
+    try {
+      const cur=parseFloat(k.current), tgt=parseFloat(k.target);
+      const g=cur-tgt; const gp=(g/tgt*100);
+      gap=(g>=0?'+':'')+g.toFixed(2);
+      gapPct=(gp>=0?'+':'')+gp.toFixed(1)+'%';
+      statusTxt=g>=0?'✅ Atteint':'❌ Non atteint';
+    }catch(e){}
+    kpiData.push([k.pillar,k.name,k.target,k.current,gap,gapPct,k.trend,k.frequency,statusTxt]);
+  });
+  kpiData.push([]);
+
+  // Répartition par pilier
+  const pillarMap={};
+  state.kpis.forEach(k=>{ pillarMap[k.pillar]=(pillarMap[k.pillar]||0)+1; });
+  kpiData.push(['Répartition par pilier','','','','','','','','']);
+  kpiData.push(['Pilier','Nb de KPIs','% du total','','','','','','']);
+  const total = state.kpis.length;
+  Object.entries(pillarMap).forEach(([p,c])=>{
+    kpiData.push([p, c, total?((c/total*100).toFixed(1)+'%'):'0%']);
+  });
+
+  // KPIs atteints vs non atteints
+  kpiData.push([]);
+  let atteints=0, nonAtteints=0;
+  state.kpis.forEach(k=>{
+    try { parseFloat(k.current)>=parseFloat(k.target) ? atteints++ : nonAtteints++; } catch(e){}
+  });
+  kpiData.push(['Synthèse performance','','','','','','','','']);
+  kpiData.push(['Statut','Nombre','%']);
+  kpiData.push(['KPIs atteints', atteints, total?(atteints/total*100).toFixed(1)+'%':'0%']);
+  kpiData.push(['KPIs non atteints', nonAtteints, total?(nonAtteints/total*100).toFixed(1)+'%':'0%']);
+
+  const ws3 = XLSX.utils.aoa_to_sheet(kpiData);
+  ws3['!cols']=[{wch:16},{wch:32},{wch:12},{wch:12},{wch:10},{wch:10},{wch:10},{wch:14},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, ws3, '📊 KPI Analysis');
+
+  // ── SHEET 4: DONNÉES BRUTES ─────────────────────────────────────────────
+  const raw = [];
+  raw.push(['=== DONNÉES OKR ===']);
+  raw.push(['ID','Objectif','Pilier','Responsable','KR ID','Key Result','Resp. KR','Cible','Actuel','Avancement (%)','Statut KR']);
+  state.okrs.forEach(o=>{
+    o.keyResults.forEach((kr,i)=>{
+      const prog=parseFloat(kr.progress||0);
+      raw.push([o.id, o.title, o.pillar, o.owner, i+1, kr.title, kr.owner,
+                kr.target, kr.current, prog, prog>=80?'On Track':prog>=50?'At Risk':'Off Track']);
+    });
+    if(!o.keyResults.length) raw.push([o.id,o.title,o.pillar,o.owner,'–','–','–','–','–',0,'Off Track']);
+  });
+  raw.push([]);
+  raw.push(['=== DONNÉES KPI ===']);
+  raw.push(['ID','Pilier','Indicateur','Cible','Actuel','Écart','Tendance','Fréquence','Atteint ?']);
+  state.kpis.forEach(k=>{
+    let gap='–', atteint='?';
+    try {
+      const g=parseFloat(k.current)-parseFloat(k.target);
+      gap=(g>=0?'+':'')+g.toFixed(2);
+      atteint=g>=0?'Oui':'Non';
+    }catch(e){}
+    raw.push([k.id,k.pillar,k.name,k.target,k.current,gap,k.trend,k.frequency,atteint]);
+  });
+
+  const ws4 = XLSX.utils.aoa_to_sheet(raw);
+  ws4['!cols']=[{wch:8},{wch:34},{wch:14},{wch:18},{wch:8},{wch:34},{wch:18},{wch:12},{wch:12},{wch:16},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws4, '📋 Données Brutes');
+
+  // ── SHEET 5: SYNTHÈSE DÉCISION ──────────────────────────────────────────
+  const synth = [];
+  synth.push([`SYNTHÈSE POUR PRISE DE DÉCISION — ${company}`, '', '', '']);
+  synth.push([`Générée le ${dateStr} • Période : ${period}`, '', '', '']);
+  synth.push([]);
+  synth.push(['PERFORMANCE GLOBALE OKR']);
+  synth.push(['Total OKRs', state.okrs.length]);
+  synth.push(['On Track (≥80%)', state.okrs.filter(o=>avgProgress(o)>=80).length]);
+  synth.push(['At Risk (50-79%)', state.okrs.filter(o=>{const p=avgProgress(o);return p>=50&&p<80;}).length]);
+  synth.push(['Off Track (<50%)', state.okrs.filter(o=>avgProgress(o)<50).length]);
+  const globalAvg = state.okrs.length ? Math.round(state.okrs.reduce((s,o)=>s+avgProgress(o),0)/state.okrs.length) : 0;
+  synth.push(['Avancement moyen global', globalAvg+'%']);
+  synth.push([]);
+  synth.push(['PERFORMANCE GLOBALE KPI']);
+  synth.push(['Total KPIs suivis', state.kpis.length]);
+  synth.push(['KPIs atteints', atteints]);
+  synth.push(['KPIs non atteints', nonAtteints]);
+  synth.push(['Taux de réalisation', total ? (atteints/total*100).toFixed(1)+'%' : '0%']);
+  synth.push([]);
+  synth.push(['PERFORMANCE PAR PILIER']);
+  synth.push(['Pilier', 'OKRs', 'Avancement moy.', 'KPIs', 'KPIs atteints']);
+  ['Marketing','Commercial','Opérations','RH'].forEach(p=>{
+    const pOkrs = state.okrs.filter(o=>o.pillar===p);
+    const pAvg = pOkrs.length ? Math.round(pOkrs.reduce((s,o)=>s+avgProgress(o),0)/pOkrs.length) : 0;
+    const pKpis = state.kpis.filter(k=>k.pillar===p);
+    let pAtteints=0;
+    pKpis.forEach(k=>{try{if(parseFloat(k.current)>=parseFloat(k.target))pAtteints++;}catch(e){}});
+    synth.push([p, pOkrs.length, pAvg+'%', pKpis.length, pAtteints]);
+  });
+  synth.push([]);
+  synth.push(['POINTS D\'ATTENTION (Off Track)']);
+  synth.push(['Type','Élément','Avancement / Écart']);
+  state.okrs.forEach(o=>{
+    o.keyResults.filter(kr=>parseFloat(kr.progress||0)<50).forEach(kr=>{
+      synth.push(['OKR - Key Result', kr.title, parseFloat(kr.progress||0)+'%']);
+    });
+  });
+  state.kpis.forEach(k=>{
+    try {
+      const g=parseFloat(k.current)-parseFloat(k.target);
+      if(g<0) synth.push(['KPI', k.name, (g.toFixed(2)+' vs cible')]);
+    }catch(e){}
+  });
+
+  const ws5 = XLSX.utils.aoa_to_sheet(synth);
+  ws5['!cols']=[{wch:36},{wch:16},{wch:18},{wch:14},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, ws5, '🎯 Synthèse Décision');
+
+  // DOWNLOAD
+  const fname = `OMA_OKR_KPI_${period.replace(/\s/g,'_')}_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.xlsx`;
+  XLSX.writeFile(wb, fname);
+  showToast(`✅ Export téléchargé : ${fname}`);
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+renderDashboard();
+</script>
+</body>
+</html>
