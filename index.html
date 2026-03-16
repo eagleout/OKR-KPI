@@ -397,10 +397,10 @@ input[type=range] {
       <button class="btn btn-outline" style="font-size:0.85rem;padding:0.7rem 1.5rem;" onclick="exportJSON()">
         💾 Sauvegarder (.json)
       </button>
-      <label class="btn btn-outline" style="font-size:0.85rem;padding:0.7rem 1.5rem;cursor:pointer;">
+      <button class="btn btn-outline" style="font-size:0.85rem;padding:0.7rem 1.5rem;" onclick="document.getElementById('json-import-input').click()">
         📂 Charger (.json)
-        <input type="file" accept=".json" onchange="importJSON(event)" style="display:none">
-      </label>
+      </button>
+      <input type="file" id="json-import-input" accept=".json" onchange="importJSON(event)" style="display:none;position:absolute">
     </div>
   </div>
 
